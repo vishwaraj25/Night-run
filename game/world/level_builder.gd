@@ -181,11 +181,22 @@ const MAX_STRUT_GAP := 320.0 # beyond this, platforms aren't meant to read as th
 
 func _ready() -> void:
 	add_to_group("level_platforms") # lets the camera find this without a hard NodePath dependency
-	# Draw order matters: backdrops, then struts, then platforms on top —
-	# each layer is meant to be seen "through" the gaps in the one after it.
+	# Draw order matters: backdrops, then platforms on top — each layer is
+	# meant to be seen "through" the gaps in the one after it.
+	#
+	# _build_struts() used to run here, drawing a flat solid-color rectangle
+	# between stacked platforms to explain why they weren't just floating.
+	# In practice it was a plain gray box with two thin edge lines, no
+	# texture, no shading, drawn directly on top of the hand-painted
+	# backdrop's buildings and neon signs. It read as a rendering glitch,
+	# not as scaffolding — checked by rendering it at full size and looking,
+	# not by re-reading the code that drew it. The backdrop art already
+	# carries plenty of visual structure; floating platforms are a normal
+	# part of this style and don't need a beam explaining them. Removed
+	# rather than reskinned: 25 of these across the level, all the same
+	# problem, and there was nothing about the shape worth keeping.
 	for s in SECTIONS:
 		_build_backdrop(s["x_start"], s["x_end"])
-	_build_struts()
 	for p in PLATFORMS:
 		_build_platform(p["x"], p["y"], p["w"], p.get("route", "main"))
 	for r in RAMPS:
