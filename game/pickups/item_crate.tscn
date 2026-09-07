@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://pickups/item_crate.gd" id="1"]
+[ext_resource type="PackedScene" path="res://weapons/weapon_flamethrower.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/item_crate_spritesheet.png" id="3"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(80, 50)
+
+[node name="ItemCrate" type="Area2D"]
+collision_layer = 8
+collision_mask = 1
+script = ExtResource("1")
+item_name = "flamethrower"
+weapon_scene = ExtResource("2")
+
+; Content of a closed crate is x 111-357, y 97-237 inside the 384x256 cell, so
+; its centre sits 42px right and 39px below the cell centre. At 0.36 scale
+; (~89px wide in game) that offset becomes the sprite position below, which
+; puts the crate itself on this node's origin.
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(-15.1, -14.0)
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("3")
+hframes = 4
+vframes = 4
+frame = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")

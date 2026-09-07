@@ -1,0 +1,18 @@
+.godot/
+.import/
+*.translation
+node_modules/
+.DS_Store
+# Android build artefacts and local SDK paths
+game/android/build/
+game/android/.gradle/
+*.apk
+*.aab
+*.keystore
+backend/node_modules/
+# Build outputs -- reproducible from source, so nothing under build/ is tracked
+build/
+
+# Working files, not part of the shipped game or backend
+_raw_asset_sources/
+/assets/

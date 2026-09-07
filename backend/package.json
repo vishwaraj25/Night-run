@@ -1,0 +1,13 @@
+{
+  "name": "night-run-telemetry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anonymous, event-only telemetry ingestion for Night Run.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": { "pg": "^8.13.1" }
+}

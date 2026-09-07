@@ -1,0 +1,256 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://world/level.gd" id="1"]
+[ext_resource type="Script" path="res://world/level_builder.gd" id="2"]
+[ext_resource type="PackedScene" path="res://player/player_cyborg.tscn" id="3"]
+[ext_resource type="Script" path="res://world/enemy_spawner.gd" id="4"]
+[ext_resource type="Script" path="res://world/boss_spawner.gd" id="5"]
+[ext_resource type="PackedScene" path="res://enemies/enemy_sentry.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://enemies/boss_mech.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://enemies/enemy_flyer.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://pickups/item_crate.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://world/checkpoint.tscn" id="24"]
+[ext_resource type="PackedScene" path="res://ui/touch_controls.tscn" id="25"]
+[ext_resource type="PackedScene" path="res://weapons/weapon_laser.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://weapons/weapon_mg.tscn" id="18"]
+[ext_resource type="Texture2D" path="res://assets/bg_mid.png" id="14"]
+[ext_resource type="Script" path="res://world/pause_overlay.gd" id="16"]
+[ext_resource type="PackedScene" path="res://weapons/weapon_double_mg.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://traps/trap_bot.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://traps/trap_spikes.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://traps/trap_turret.tscn" id="21"]
+[ext_resource type="PackedScene" path="res://traps/trap_ceiling_beam.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://traps/trap_laser_gate.tscn" id="23"]
+
+[node name="Level" type="Node2D"]
+script = ExtResource("1")
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="Sky" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.3, 0)
+motion_mirroring = Vector2(5245, 0)
+
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/Sky"]
+position = Vector2(2622, 350)
+texture = ExtResource("14")
+
+[node name="Platforms" type="Node2D" parent="."]
+script = ExtResource("2")
+
+[node name="PlayerCyborg" parent="." instance=ExtResource("3")]
+position = Vector2(200, 400)
+
+[node name="EnemySpawner" type="Node" parent="."]
+script = ExtResource("4")
+car_path = NodePath("../PlayerCyborg")
+ground_enemy_scenes = [ExtResource("6")]
+air_enemy_scenes = [ExtResource("9")]
+
+[node name="BossSpawner" type="Node" parent="."]
+script = ExtResource("5")
+car_path = NodePath("../PlayerCyborg")
+boss_scene = ExtResource("7")
+trigger_distance = 27400.0
+
+[node name="HUD" parent="." instance=ExtResource("8")]
+
+[node name="TouchControls" parent="." instance=ExtResource("25")]
+
+[node name="PauseOverlay" type="CanvasLayer" parent="."]
+layer = 10
+script = ExtResource("16")
+
+[node name="Dim" type="ColorRect" parent="PauseOverlay"]
+offset_right = 960.0
+offset_bottom = 540.0
+color = Color(0, 0, 0, 0.5)
+
+[node name="Label" type="Label" parent="PauseOverlay"]
+offset_left = 380.0
+offset_top = 240.0
+offset_right = 580.0
+offset_bottom = 280.0
+theme_override_font_sizes/font_size = 28
+text = "PAUSED"
+horizontal_alignment = 1
+
+; Crates sit on top of specific authored platforms — see level_builder.gd's
+; PLATFORMS list; each y is ~60px above that platform's surface. Which route
+; you take decides which weapons you get.
+
+; --- street: first pickup, on the opening ground ---
+[node name="CrateDoubleMG" parent="." instance=ExtResource("10")]
+position = Vector2(1200, 440)
+item_name = "double_mg"
+weapon_scene = ExtResource("17")
+
+; --- fork 1: high road reward ---
+[node name="CrateLaserHigh1" parent="." instance=ExtResource("10")]
+position = Vector2(5450, 280)
+item_name = "laser"
+weapon_scene = ExtResource("12")
+
+; --- fork 1: underpass reward ---
+[node name="CrateFlamethrowerLow1" parent="." instance=ExtResource("10")]
+position = Vector2(5150, 640)
+item_name = "flamethrower"
+
+; --- speed track ---
+[node name="CrateFlamethrowerSpeed" parent="." instance=ExtResource("10")]
+position = Vector2(10200, 440)
+item_name = "flamethrower"
+
+; --- fork 2: one reward per tier ---
+[node name="CrateLaserHigh2" parent="." instance=ExtResource("10")]
+position = Vector2(15050, 280)
+item_name = "laser"
+weapon_scene = ExtResource("12")
+
+[node name="CrateMGMid2" parent="." instance=ExtResource("10")]
+position = Vector2(15100, 560)
+item_name = "machine_gun"
+weapon_scene = ExtResource("18")
+
+[node name="CrateFlamethrowerLow2" parent="." instance=ExtResource("10")]
+position = Vector2(15400, 840)
+item_name = "flamethrower"
+
+; --- vertical tower summit ---
+[node name="CrateDoubleMGTower" parent="." instance=ExtResource("10")]
+position = Vector2(21500, 200)
+item_name = "double_mg"
+weapon_scene = ExtResource("17")
+
+; --- last chance before the gear chamber ---
+[node name="CrateLaserApproach" parent="." instance=ExtResource("10")]
+position = Vector2(25700, 440)
+item_name = "laser"
+weapon_scene = ExtResource("12")
+
+; Traps — placed with intent, not just scattered. Each one is either a
+; difficulty-curve step (street's bot is a safe first look at a stationary
+; shooter; the approach gate is the hardest single check in the level) or a
+; "pressure funnels you somewhere worse" moment (see the fork 2 turret).
+
+; --- street: safe first look at a stationary shooter, plenty of room to
+; approach from a distance before it's in range ---
+[node name="TrapBotStreet" parent="." instance=ExtResource("19")]
+position = Vector2(3650, 500)
+
+; --- fork 1 underpass: lands right where the low route's exit ramp finishes
+; climbing back up to the rejoin — you're already moving forward off the
+; ramp, so this demands a timed hop, not just a walk-through ---
+[node name="TrapSpikesFork1" parent="." instance=ExtResource("20")]
+position = Vector2(6000, 700)
+
+; --- speed track: the one long, gap-free stretch in the level. A stationary
+; shooter here is what actually makes the run-and-gun jumping/weaving the
+; level's built around, since there's nothing else to dodge but this ---
+[node name="TrapBotSpeedTrack" parent="." instance=ExtResource("19")]
+position = Vector2(10500, 500)
+
+; --- fork 2: the deliberate "forced down into a trap" moment. There's a
+; strut connecting the high route to mid tier at x=16975 (a grunt is already
+; timelined to press you right around there in enemy_spawner.gd) -- a
+; player retreating from that grunt by dropping to mid tier lands right in
+; front of this turret instead. Escaping one threat walks you into another.
+[node name="TrapTurretFork2Ambush" parent="." instance=ExtResource("21")]
+position = Vector2(17000, 620)
+
+; --- tower: no safe resting spots even on the flat bits between climbs ---
+[node name="TrapSpikesTower" parent="." instance=ExtResource("20")]
+position = Vector2(22000, 260)
+
+; --- tower: timed against the ramp climb at x=20600-20750. The beam's off
+; window (1.8s default) is comfortably longer than the ~0.6s it takes to
+; walk the ramp, so it's a real "wait for the gap" beat, not a coinflip ---
+[node name="TrapCeilingBeamTower" parent="." instance=ExtResource("22")]
+position = Vector2(20675, 100)
+beam_length = 225.0
+
+; --- approach: the hardest single check in the level, right before the
+; boss door. Spans the 150px gap between the last two approach platforms --
+; a jump that was previously trivial now has to be timed against the gate.
+[node name="TrapLaserGateApproach" parent="." instance=ExtResource("23")]
+position = Vector2(25250, 500)
+far_offset = Vector2(150, 0)
+
+; --- approach: one last threat after the gate, right before the gear
+; chamber door, keeping pressure up to the very end ---
+[node name="TrapBotApproachFinal" parent="." instance=ExtResource("19")]
+position = Vector2(26000, 500)
+
+; --- Support pickups. Placed as recovery beats: a medkit right after each
+; fork's hard stretch and one before the boss door, and jetpacks at the two
+; places where vertical movement is the actual problem (the tower climb, and
+; the arena's ledges). 10s of fuel is deliberately short of "fly the level" ---
+
+
+[node name="CrateJetpackSpeed" parent="." instance=ExtResource("10")]
+position = Vector2(10600, 440)
+item_name = "jetpack"
+
+
+[node name="CrateJetpackTower" parent="." instance=ExtResource("10")]
+position = Vector2(20300, 360)
+item_name = "jetpack"
+
+
+
+[node name="CrateJetpackArena" parent="." instance=ExtResource("10")]
+position = Vector2(26900, 440)
+item_name = "jetpack"
+
+; --- Medkits. Four reachable on any single run, spaced so one arrives at the
+; end of each stretch that actually costs you health: after fork 1, after
+; fork 2, on top of the tower climb, and at the boss door. The forked
+; sections carry one per tier because you only ever see the tier you took.
+;
+; y is the platform surface MINUS 55. Sitting them at the surface put half the
+; 50px-tall pickup box inside the 26px slab, which is why they looked sunk
+; into the tiles. ---
+
+[node name="MedkitFork1High" parent="." instance=ExtResource("10")]
+position = Vector2(6700, 285)
+item_name = "medkit"
+
+[node name="MedkitFork1Low" parent="." instance=ExtResource("10")]
+position = Vector2(6900, 645)
+item_name = "medkit"
+
+[node name="MedkitFork2High" parent="." instance=ExtResource("10")]
+position = Vector2(16300, 285)
+item_name = "medkit"
+
+[node name="MedkitFork2Mid" parent="." instance=ExtResource("10")]
+position = Vector2(16700, 565)
+item_name = "medkit"
+
+[node name="MedkitFork2Low" parent="." instance=ExtResource("10")]
+position = Vector2(16300, 845)
+item_name = "medkit"
+
+[node name="MedkitTowerTop" parent="." instance=ExtResource("10")]
+position = Vector2(21950, 205)
+item_name = "medkit"
+
+[node name="MedkitBossDoor" parent="." instance=ExtResource("10")]
+position = Vector2(26300, 445)
+item_name = "medkit"
+
+; --- Checkpoints. Three, each on flat quiet ground with no encounter within a
+; screen of it: after fork 1's routes rejoin, after fork 2's do, and at the
+; boss door. The last one is the one that matters most -- without it, every
+; attempt at the boss meant replaying 27,000px of level. y is the platform
+; surface, since the pylon is drawn upward from its base. ---
+
+[node name="CheckpointAfterFork1" parent="." instance=ExtResource("24")]
+position = Vector2(8900, 500)
+
+[node name="CheckpointAfterFork2" parent="." instance=ExtResource("24")]
+position = Vector2(19150, 500)
+
+[node name="CheckpointBossDoor" parent="." instance=ExtResource("24")]
+position = Vector2(26400, 500)

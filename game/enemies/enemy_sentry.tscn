@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://enemies/enemy_sentry.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/turret_sentry_spritesheet.png" id="2"]
+[ext_resource type="PackedScene" path="res://weapons/enemy_projectile.tscn" id="3"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(110, 128)
+
+[node name="EnemyShooter" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 17
+script = ExtResource("1")
+enemy_projectile_scene = ExtResource("3")
+muzzle_offset = Vector2(51.2, -86.4)
+
+; Idle-row content is x 2-174, y 47-184 inside the 186x211 cell. At 0.95 scale
+; that's 164x131. Bottom-aligned: content bottom (y=184) is 78.5px below the
+; frame centre, so the sprite sits at -74.6 to put the feet on this node's
+; origin; x is nudged +4.75 to centre the body rather than the frame.
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(4.75, -74.6)
+scale = Vector2(0.95, 0.95)
+texture = ExtResource("2")
+hframes = 8
+vframes = 5
+frame = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -64)
+shape = SubResource("RectangleShape2D_1")

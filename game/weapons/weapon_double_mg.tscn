@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_double_mg.gd" id="1"]
+[ext_resource type="PackedScene" path="res://weapons/projectile_base.tscn" id="2"]
+
+[node name="WeaponDoubleMG" type="Node2D"]
+script = ExtResource("1")
+fire_rate = 0.16
+damage = 8.0
+projectile_scene = ExtResource("2")

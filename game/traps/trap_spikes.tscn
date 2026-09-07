@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://traps/trap_spikes.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/trap_spikes_retracted.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/trap_spikes_extended.png" id="3"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(140, 50)
+
+[node name="TrapSpikes" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1")
+retracted_texture = ExtResource("2")
+extended_texture = ExtResource("3")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -40)
+shape = SubResource("RectangleShape2D_1")
+disabled = true
