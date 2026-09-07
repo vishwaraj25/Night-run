@@ -212,6 +212,7 @@ G=godot
 
 $G --headless --path game --import                                   # after any asset change
 $G --headless --path game --export-release "Web"     ../build/web/index.html
+cp deploy/_headers build/web/_headers                                 # export does not carry this over
 $G --headless --path game --export-debug   "Android" ../build/night-run.apk
 cd build/web && zip -rq ../night-run-web.zip .                       # itch upload
 ```

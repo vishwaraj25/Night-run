@@ -14,9 +14,9 @@ extends Node
 ## While it was on it fired at a placeholder host every few seconds and
 ## retried each failure, which stalled headless runs for minutes at a time
 ## and filled the log with retry warnings.
-@export var enabled: bool = false
+@export var enabled: bool = true
 
-const ENDPOINT_URL := "https://your-project.example.com/api/events"
+const ENDPOINT_URL := "https://night-run-indol.vercel.app/api/events"
 const FLUSH_INTERVAL_SEC := 8.0        # time-based flush
 const FLUSH_BATCH_SIZE := 20           # size-based flush (whichever comes first)
 const MAX_QUEUE_SIZE := 500            # hard cap so a long offline stretch can't leak memory

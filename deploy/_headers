@@ -1,0 +1,19 @@
+# Security headers for the static game build.
+# Netlify and Cloudflare Pages both read this file; other hosts have their own
+# equivalent (see HOSTING.md).
+
+/*
+  # No plugins, no framing, no MIME sniffing.
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  # Explicitly refuse the permissions a game like this has no business asking
+  # for. A browser that respects this cannot grant them even if something in
+  # the page asks -- which is the point, since players are trusting a link.
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), midi=(), payment=(), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), interest-cohort=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  # CSP: everything the game needs ships with it. wasm-unsafe-eval is required
+  # by the Godot WebAssembly runtime and is not a general eval. connect-src is
+  # the one line to edit when you deploy the telemetry API -- add its origin,
+  # and nothing else can be contacted.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; worker-src 'self' blob:; connect-src 'self' https://night-run-indol.vercel.app; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'

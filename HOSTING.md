@@ -31,6 +31,12 @@ Serve it locally to check anything:
 
 ```bash
 cd build/web && python3 -m http.server 8777   # then open localhost:8777
+
+Before uploading anywhere, make sure the security headers file is in place:
+
+```bash
+cp deploy/_headers build/web/_headers
+```
 ```
 
 ### Why the web build is the one to share
