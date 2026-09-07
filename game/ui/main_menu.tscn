@@ -80,10 +80,10 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hover")
 [node name="ControlsPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 180.0
-offset_top = 120.0
-offset_right = 830.0
-offset_bottom = 420.0
+offset_left = 120.0
+offset_top = 90.0
+offset_right = 840.0
+offset_bottom = 450.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Title" type="Label" parent="ControlsPanel"]
@@ -97,21 +97,18 @@ text = "CONTROLS"
 
 [node name="List" type="Label" parent="ControlsPanel"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 64.0
-offset_right = 480.0
-offset_bottom = 264.0
-theme_override_constants/line_spacing = 10
-text = "Move — A / D or Left / Right
-Jump — Space (double jump in air)
-Crouch — S or Down
-Fire — Hold Ctrl or Left Mouse Button
-Aim — Mouse position"
+offset_left = 24.0
+offset_top = 58.0
+offset_right = 700.0
+offset_bottom = 300.0
+theme_override_constants/line_spacing = 8
+autowrap_mode = 2
+text = "Set from code in main_menu.gd, which reads the real input map."
 
 [node name="CloseButton" type="Button" parent="ControlsPanel"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 232.0
-offset_right = 140.0
-offset_bottom = 272.0
+offset_left = 24.0
+offset_top = 306.0
+offset_right = 164.0
+offset_bottom = 348.0
 text = "Back"

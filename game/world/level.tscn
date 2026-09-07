@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://world/level.gd" id="1"]
 [ext_resource type="Script" path="res://world/level_builder.gd" id="2"]
@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" path="res://traps/trap_turret.tscn" id="21"]
 [ext_resource type="PackedScene" path="res://traps/trap_ceiling_beam.tscn" id="22"]
 [ext_resource type="PackedScene" path="res://traps/trap_laser_gate.tscn" id="23"]
+[ext_resource type="Script" path="res://world/backdrop_fade.gd" id="26"]
 
 [node name="Level" type="Node2D"]
 script = ExtResource("1")
@@ -35,6 +36,9 @@ motion_mirroring = Vector2(5245, 0)
 [node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/Sky"]
 position = Vector2(2622, 350)
 texture = ExtResource("14")
+
+[node name="BottomFade" type="Node2D" parent="ParallaxBackground/Sky"]
+script = ExtResource("26")
 
 [node name="Platforms" type="Node2D" parent="."]
 script = ExtResource("2")

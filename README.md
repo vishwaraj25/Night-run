@@ -25,8 +25,12 @@ See `ITCH_UPLOAD.md` for how to publish it and get that link.
 | Left mouse button or Ctrl | Shoot |
 | Shift | Raise your shield. Time it right and you deflect the shot back |
 | Escape or P | Pause |
+| M | Mute |
 
-On a phone or tablet, on-screen buttons appear automatically.
+On a phone or tablet, on-screen buttons appear automatically: movement and aim
+pads on the left, fire, jump and shield on the right, and pause in the top
+corner. The pause screen has Resume and Sound buttons, so a phone does not need
+a keyboard for either.
 
 ## What is in this repo
 
@@ -75,7 +79,6 @@ details are in `PRIVACY.md`.
 The game is playable start to finish, including the boss fight. A few
 things are still open:
 
-- Tested on desktop browsers. The mobile layout has only been checked in a
-  resized browser window, not on a real phone.
-- The backend has never been connected to a real database.
+- The mobile layout has been checked by rendering the game at real phone
+  aspect ratios, but not yet on actual phone hardware.
 - One planned enemy type still uses art borrowed from a turret enemy.

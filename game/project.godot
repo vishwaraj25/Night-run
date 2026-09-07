@@ -26,6 +26,7 @@ EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 Telemetry="*res://autoload/telemetry.gd"
 Audio="*res://autoload/audio.gd"
+InputGuard="*res://autoload/input_guard.gd"
 
 [display]
 
@@ -94,3 +95,11 @@ textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+
+; Anything the camera can see but nothing draws into falls back to this. It was
+; unset, so it was Godot's default mid-grey (0.3), which is why zooming out at a
+; fork put a grey band across the bottom fifth of the screen and grey bars down
+; the sides: 21.1% of the frame at the widest zoom, measured. This value is the
+; colour of the bottom edge of bg_mid.png, so what is left over reads as the
+; city fading into the dark rather than as a hole in the render.
+environment/defaults/default_clear_color=Color(0.164, 0.125, 0.184, 1)

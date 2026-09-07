@@ -86,6 +86,23 @@ const shield_block_cost := 8.0    # each blocked hit costs charge on top of the 
 ## is weak. Two tools out of one button: a panic block that costs, and a timing
 ## skill that pays.
 const shield_perfect_window := 0.2
+## Charge needed to RAISE the shield, as opposed to the 0 it takes to keep an
+## already-raised one up. Without this floor, holding the button on an empty
+## shield flickers: the regen puts a sliver of charge back, the sliver clears
+## "energy > 0" for a single frame, and the shield raises and collapses again.
+## Measured before the fix: 7 raises out of one continuous 8-second hold, each
+## one retriggering the raise sound. That is the "shield sound popping, going
+## up and down" report.
+const shield_min_raise := 25.0
+
+## How long after a finger touches the screen that mouse motion is ignored for
+## aiming. Godot's emulate_mouse_from_touch is on by default, so every tap also
+## arrives as a mouse-motion event; without this, touching a movement pad in
+## the bottom-left corner switched the character to mouse aim and pointed the
+## gun at that corner -- the character faced forward and fired backwards and
+## down. On a desktop with a real mouse no touch events arrive at all, so the
+## mouse path below behaves exactly as it always did.
+const touch_mouse_lockout := 1.5
 
 signal health_changed(current: float, max: float)
 signal jetpack_changed(seconds_left: float, total: float)
@@ -100,6 +117,9 @@ var _dead := false
 var _death_timer := 0.0
 var _facing := 1.0        # last horizontal direction moved; what "forward" means when aiming
 var _mouse_aim := false   # last aim input came from the mouse rather than the keyboard
+var _touch_lockout := 0.0 # counts down after a touch; see touch_mouse_lockout
+var _touch_ui := false    # on-screen pads are present, so this is a phone: never mouse-aim
+var _touch_ui_checked := false
 var shield_energy := shield_max
 var shield_active := false
 var last_block_perfect := false  # read by enemy_projectile.gd to size the return shot
@@ -114,6 +134,11 @@ func _ready() -> void:
 	add_to_group("player") # HUD, enemy targeting, and weapon aim assist all look for this group
 
 func _physics_process(delta: float) -> void:
+	if not _touch_ui_checked:
+		_refresh_touch_ui()
+	if _touch_lockout > 0.0:
+		_touch_lockout -= delta
+
 	if _dead:
 		_process_death(delta)
 		return
@@ -172,10 +197,30 @@ func _physics_process(delta: float) -> void:
 ## Whichever device you touched last wins, so neither control scheme has to
 ## be "the" one: nudging the mouse switches to mouse aim, touching an aim or
 ## movement key switches back to keyboard.
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		_mouse_aim = true
+##
+## _input rather than _unhandled_input because the on-screen pads sit in front
+## of the play area and may take the event first; this only reads events to
+## decide which aim scheme is live, and never consumes one.
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_touch_lockout = touch_mouse_lockout
+		_mouse_aim = false
+	elif event is InputEventMouseMotion:
+		# Suppressed while a finger is recently down, because that "mouse
+		# motion" is the finger. See touch_mouse_lockout.
+		if _touch_lockout <= 0.0 and not _touch_ui:
+			_mouse_aim = true
 	elif event is InputEventKey and event.pressed and not event.echo:
+		_mouse_aim = false
+
+## The on-screen pads only exist on a touch device (touch_controls.gd frees
+## itself otherwise), so their presence is the one fully reliable signal that
+## there is no mouse to aim with. Checked once, on the first frame, because the
+## pads are built during the level's own _ready.
+func _refresh_touch_ui() -> void:
+	_touch_ui_checked = true
+	_touch_ui = get_tree().get_first_node_in_group("touch_controls") != null
+	if _touch_ui:
 		_mouse_aim = false
 
 ## The single source of truth for where this character is shooting -- the
@@ -191,7 +236,7 @@ func get_aim_direction() -> Vector2:
 	if not Input.is_action_pressed("fire"):
 		return Vector2.ZERO
 
-	if _mouse_aim:
+	if _mouse_aim and not _touch_ui:
 		var to_mouse := get_global_mouse_position() - global_position
 		if to_mouse.length() >= 1.0:
 			return to_mouse.normalized()
@@ -259,7 +304,16 @@ func _process_death(delta: float) -> void:
 ## self)` works against this controller too. Returns whether the hit was
 ## blocked, which is what turns an enemy bullet around.
 func _update_shield(delta: float) -> void:
-	var want: bool = Input.is_action_pressed("shield") and shield_energy > 0.0
+	var holding: bool = Input.is_action_pressed("shield")
+	# Asymmetric on purpose: an already-raised shield runs all the way down to
+	# empty, but raising a fresh one needs a real reserve. That gap is what
+	# stops the empty-shield flicker described on shield_min_raise.
+	var want: bool
+	if shield_active:
+		want = holding and shield_energy > 0.0
+	else:
+		want = holding and shield_energy >= shield_min_raise
+
 	if want:
 		if not shield_active:
 			_shield_held = 0.0 # a fresh raise reopens the perfect window
@@ -268,9 +322,15 @@ func _update_shield(delta: float) -> void:
 		_shield_idle = 0.0
 	else:
 		_shield_held = 0.0
-		_shield_idle += delta
-		if _shield_idle >= shield_regen_delay:
-			shield_energy = minf(shield_max, shield_energy + shield_regen_per_sec * delta)
+		if holding:
+			# Recovery begins when you DROP the shield, which is what this was
+			# always documented to do. Trickling charge back into a still-held
+			# button is what fed the flicker.
+			_shield_idle = 0.0
+		else:
+			_shield_idle += delta
+			if _shield_idle >= shield_regen_delay:
+				shield_energy = minf(shield_max, shield_energy + shield_regen_per_sec * delta)
 	if want != shield_active:
 		shield_active = want
 		if shield_active:
@@ -316,15 +376,36 @@ func respawn(at: Vector2) -> void:
 	_jumps_used = 0
 	health = max_health
 	shield_energy = shield_max
+	# Reset the held-state too, not just the numbers. Coming back with
+	# shield_active still true from the death left the bubble drawn over a
+	# character who was not blocking anything.
+	shield_active = false
+	_shield_held = 0.0
+	_shield_idle = shield_regen_delay
 	sprite.modulate = Color(1, 1, 1)
 	health_changed.emit(health, max_health)
 	shield_energy_changed.emit(shield_energy, shield_max)
+	shield_changed.emit(false)
+
+## Public because WeaponManager has to know: it runs on its own _process and
+## used to keep firing after death (measured at 73 physics frames and still
+## going), which meant gunfire and a held laser loop over the death animation.
+func is_dead() -> bool:
+	return _dead
 
 func _die(reason: String) -> void:
 	if _dead:
 		return
 	_dead = true
 	_death_timer = 0.0
+	# Drop everything that is "held", or it stays held through the death
+	# animation and into the respawn: the shield bubble, and any sustained
+	# weapon loop that nothing is driving any more.
+	if shield_active:
+		shield_active = false
+		shield_changed.emit(false)
+	Audio.stop_all_loops()
+	queue_redraw()
 	EventBus.player_died.emit(reason)
 
 

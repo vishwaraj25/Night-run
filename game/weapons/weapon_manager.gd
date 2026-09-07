@@ -36,6 +36,17 @@ func _ready() -> void:
 		equip(default_weapon_scene)
 
 func _process(delta: float) -> void:
+	# A dead host does not shoot. This runs on its own _process, so it used to
+	# keep firing straight through the death animation for as long as the fire
+	# button stayed down -- gunshots, muzzle flashes and a sustained laser loop
+	# over a corpse. The controller early-returns when dead; this has to check
+	# the same thing rather than assume it was told.
+	# The sustained weapons stop on their own once fire() stops arriving (their
+	# beam timers decay and close the audio loop), so returning here is enough.
+	var host := get_parent()
+	if host and host.has_method("is_dead") and host.is_dead():
+		return
+
 	_tick_weapon_timer(delta)
 	_update_aim()
 	if Input.is_action_pressed("fire") and _current_weapon and _current_weapon.has_method("fire"):

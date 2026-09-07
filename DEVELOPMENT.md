@@ -26,6 +26,12 @@ A representative list, all of them real:
 | Boss floating at y=350 | Position clamp works | Player walks through it; solver ejected it upward instead |
 | Android portrait | `orientation=1` reads as "landscape" | Built manifest declared **portrait** for a side-scroller |
 | A `match` branch missing | The edit reported success | Boss sat inert in that state for 513 frames |
+| Shield sound "popping" | Raise plays once per raise | One 8s hold raised it **7 times**: regen refilled a sliver, that sliver cleared `> 0` for one frame |
+| Character runs on its own | Nothing moves it without input | With the key-up withheld it ran at full speed for **121 of 121** frames sampled |
+| Firing after death | Controller returns early when dead | `WeaponManager` has its own `_process`: still firing **73 frames** later |
+| Shooting backwards on a phone | Aim follows facing | `emulate_mouse_from_touch` is on by default, so a thumb on a pad *is* a mouse position |
+| Menu untappable on a phone | Buttons are placed correctly | Placed for one aspect ratio; the art is `KEEP_ASPECT_COVERED`, so the words move and the hitboxes do not |
+| Grey band when the view widens | Backdrop covers the screen | At zoom 0.6 the backdrop reached 427px down a 540px view: **21.1%** of the frame was the default clear grey |
 
 The last one is worth internalising: **a string-replace edit that does not match
 silently does nothing.** Every structural edit now asserts its pattern matched
@@ -229,10 +235,52 @@ said. Tags mark known-good points — `git tag` lists them; `git checkout
 
 Nothing under `build/` is tracked: it is all reproducible from source.
 
+## Input, and why there is an InputGuard
+
+Three separate bugs came from the same root: **a press and its release are two
+events, and nothing guarantees you get the second one.**
+
+- A browser tab that loses focus mid-run never delivers the key-up. Godot keeps
+  the action pressed, so the character runs off on its own. This is the web
+  build's normal condition, not an edge case.
+- A `TouchScreenButton` that is freed mid-press (scene change, death, level
+  unloading under a thumb) never releases its action either.
+- `Input.action_press` sets action *state* without sending an *event*, so
+  anything listening in `_unhandled_input` cannot be driven by an on-screen pad
+  at all. The pause overlay was written that way and could only ever have been
+  triggered by a key, never by a touch.
+
+`autoload/input_guard.gd` owns the first two: it releases every holdable action
+on focus loss, and the pads call it when they leave the tree. The third is why
+the pause overlay polls the action instead of listening for it -- polling is the
+one path a key and a pad both take.
+
+## Two coordinate spaces that are not the same space
+
+Both mobile layout bugs were a value being measured against the wrong rectangle.
+
+- `DisplayServer.get_display_safe_area()` and `DisplayServer.screen_get_size()`
+  are not in the same space on the web build: the browser reports the whole
+  device screen while the safe area describes the canvas. Dividing one by the
+  other produced a bottom inset of a large fraction of the view and threw the
+  touch pads into the middle of the screen. `_safe_insets` now measures against
+  the *window*, refuses a safe area that does not fit inside it, and caps any
+  inset at 12%.
+- The menu's words are painted into the background art, which is drawn with
+  `KEEP_ASPECT_COVERED`. Fixed pixel offsets only line up at the one aspect
+  ratio they were authored against. The hitboxes are now stored as fractions of
+  the image and mapped through the same cover transform at runtime, so they
+  track the text at every size. The fractions were measured off the artwork by
+  finding its near-white glyph pixels (the city neon behind them is saturated,
+  the lettering is not) rather than converted from the old offsets -- those were
+  themselves short, stopping 57px before the end of the Y in PLAY.
+
 ## Known open items
 
-- **Untested on real phone hardware.** Touch pad sizes were verified in a
-  render and a desktop browser only.
+- **Untested on real phone hardware.** Touch pad placement was verified by
+  rendering the real level at phone aspect ratios (20:9, iPhone landscape, 4:3)
+  and looking at the result, and the menu hitboxes the same way. What that does
+  not tell you is how the pads feel under an actual thumb.
 - **The player does not collide with enemies** (mask is terrain-only). Contact
   damage works because enemies detect the player. The boss now ignores the
   player's body entirely and measures overlap itself, because being walked
