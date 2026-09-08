@@ -78,6 +78,7 @@ Environment:
 |---|---|---|
 | `DATABASE_URL` | yes | Postgres connection string. TLS is verified — see below |
 | `ALLOWED_ORIGINS` | yes | Comma-separated. The exact origin(s) the game is served from, e.g. `https://yourname.itch.io`. **Leave it unset and every origin is allowed** — fine locally, wrong in production |
+| `DASHBOARD_KEY` | only for the dashboard | A password of your choosing for `/dashboard`. Leave it unset and the dashboard refuses to load any data — it fails closed, not open |
 | `PGSSLROOTCERT` | only if needed | Path to a CA file, if your provider uses a private CA. This exists so you never have to disable certificate verification |
 
 Check it:
@@ -86,6 +87,19 @@ Check it:
 curl -s https://your-api/healthz            # {"ok":true}
 cd backend && npm test                      # 14 tests, the privacy ones included
 ```
+
+### Viewing the data
+
+`https://your-api/dashboard` is a simple read-only page: total players,
+event breakdown, where people die, which weapons get picked up, run
+endings, daily activity. It asks for the `DASHBOARD_KEY` you set above
+before it loads anything — pick a real password, not something guessable,
+since anyone with the key can read (but never write or delete) your
+telemetry. It remembers the key in your own browser's local storage so you
+don't retype it every visit; nobody else's browser has that.
+
+If you'd rather query it yourself, the raw SQL examples are at the bottom
+of `backend/db/schema.sql`.
 
 ### Connecting the game to it
 

@@ -6,7 +6,10 @@
 // `pg` is the only one that earns its place.
 
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const handler = require("./api/events");
+const statsHandler = require("./api/stats");
 
 const PORT = process.env.PORT || 8080;
 
@@ -33,6 +36,20 @@ const server = http.createServer(async (req, res) => {
       if (!res.headersSent) res.status(500).json({ error: "internal_error" });
       return;
     }
+  }
+  if (url.pathname === "/api/stats") {
+    try {
+      return await statsHandler(req, res);
+    } catch (err) {
+      console.error("unhandled:", err.message);
+      if (!res.headersSent) res.status(500).json({ error: "internal_error" });
+      return;
+    }
+  }
+  if (url.pathname === "/dashboard") {
+    const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"));
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(200).end(html);
   }
   return res.status(404).json({ error: "not_found" });
 });

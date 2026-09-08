@@ -1,6 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": { "api/events.js": { "maxDuration": 10 } },
+  "functions": {
+    "api/events.js": { "maxDuration": 10 },
+    "api/stats.js": { "maxDuration": 10 }
+  },
+  "rewrites": [
+    { "source": "/dashboard", "destination": "/dashboard.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
