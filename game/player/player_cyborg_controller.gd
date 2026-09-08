@@ -173,6 +173,8 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and not crouching and _jumps_used < max_jumps:
 		velocity.y = jump_velocity
 		_jumps_used += 1
+		if _jumps_used == max_jumps:
+			EventBus.double_jumped.emit()
 		Audio.play("jump")
 
 	if jetpack_time > 0.0:
@@ -350,6 +352,7 @@ func take_damage(amount: float, _source: Node = null, deflectable: bool = true) 
 		else:
 			last_block_perfect = _shield_held <= shield_perfect_window
 			Audio.play("deflect" if last_block_perfect else "hit_enemy")
+			EventBus.shield_deflected.emit(last_block_perfect)
 			if not last_block_perfect:
 				shield_energy = maxf(0.0, shield_energy - shield_block_cost)
 			shield_energy_changed.emit(shield_energy, shield_max)

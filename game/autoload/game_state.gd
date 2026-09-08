@@ -13,6 +13,8 @@ func _ready() -> void:
 	EventBus.enemy_defeated.connect(_on_enemy_defeated)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.shield_deflected.connect(_on_shield_deflected)
+	EventBus.double_jumped.connect(_on_double_jumped)
 
 func start_run() -> void:
 	score = 0
@@ -35,6 +37,12 @@ func _on_boss_defeated() -> void:
 func _on_player_died(reason: String) -> void:
 	var duration := Time.get_unix_time_from_system() - run_start_time
 	Telemetry.log_run_end(reason, score, duration, _player_x())
+
+func _on_shield_deflected(perfect: bool) -> void:
+	Telemetry.log_event("shield_deflect", {"perfect": perfect})
+
+func _on_double_jumped() -> void:
+	Telemetry.log_event("double_jump", {})
 
 
 ## Where the player was, for the events that care. Looked up rather than

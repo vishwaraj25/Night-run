@@ -128,3 +128,21 @@ test("run_end now carries where the run ended", () => {
   });
   assert.deepEqual(out, { reason: "fell", score: 120, duration_sec: 45.5, x: 18000 });
 });
+
+// --- shield deflect and double jump ----------------------------------------
+
+test("shield_deflect accepts a boolean perfect flag", () => {
+  assert.deepEqual(validatePayload("shield_deflect", { perfect: true }), { perfect: true });
+  assert.deepEqual(validatePayload("shield_deflect", { perfect: false }), { perfect: false });
+});
+
+test("shield_deflect rejects non-boolean values for perfect", () => {
+  for (const bad of ["true", 1, 0, null, {}, []]) {
+    assert.equal(validatePayload("shield_deflect", { perfect: bad }), null, `accepted ${JSON.stringify(bad)}`);
+  }
+});
+
+test("double_jump takes no payload", () => {
+  assert.deepEqual(validatePayload("double_jump", {}), {});
+  assert.equal(validatePayload("double_jump", { anything: 1 }), null);
+});

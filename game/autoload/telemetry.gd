@@ -44,6 +44,8 @@ const ALLOWED_EVENTS := {
 	# they stopped. Without this, the most common way people leave is invisible.
 	"progress": ["x"],
 	"menu_click": ["button"],
+	"shield_deflect": ["perfect"],
+	"double_jump": [],
 }
 
 ## Anonymous, and that word is doing real work: this is a random UUID the game

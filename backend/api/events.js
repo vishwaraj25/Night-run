@@ -54,6 +54,7 @@ const MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000;
 const num = (min, max) => ({ type: "number", min, max });
 const int = (min, max) => ({ type: "int", min, max });
 const enumOf = (...values) => ({ type: "enum", values: new Set(values) });
+const bool = () => ({ type: "bool" });
 
 const EVENT_SCHEMA = {
   run_start: {},
@@ -87,6 +88,15 @@ const EVENT_SCHEMA = {
     reason: enumOf("defeated", "fell"),
     x: int(-1000, 40_000),
   },
+  // Whether anyone actually uses the shield's deflect mechanic, and whether
+  // they land the perfect-timing window it was tuned around. Fired every
+  // time a hit is successfully blocked, not just when the shield is raised
+  // -- raising it and never taking a hit tells you nothing about the timing.
+  shield_deflect: { perfect: bool() },
+  // The air jump specifically, not the ground jump -- ground jumping is core
+  // movement and using it is a given. Whether people find and use the second
+  // jump is not.
+  double_jump: {},
 };
 
 module.exports = async function handler(req, res) {
@@ -229,6 +239,10 @@ function validatePayload(eventName, payload) {
     const rule = schema[key];
     const value = payload[key];
     switch (rule.type) {
+      case "bool":
+        if (typeof value !== "boolean") return null;
+        out[key] = value;
+        break;
       case "enum":
         if (typeof value !== "string" || value.length > MAX_STRING_LEN) return null;
         if (!rule.values.has(value)) return null;
