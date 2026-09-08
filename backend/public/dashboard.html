@@ -177,10 +177,15 @@
   </section>
 
   <section>
+    <h2>Replays — how many times people come back and play again</h2>
+    <div class="panel"><div class="bars" id="replayBuckets"></div></div>
+  </section>
+
+  <section>
     <h2>Players — click a row for their full event timeline</h2>
     <div class="panel">
       <table id="playersTable">
-        <thead><tr><th>Player ID</th><th>First seen</th><th>Last seen</th><th class="num">Sessions</th><th class="num">Events</th></tr></thead>
+        <thead><tr><th>Player ID</th><th>First seen</th><th>Last seen</th><th class="num">Runs</th><th class="num">Sessions</th><th class="num">Events</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -301,6 +306,7 @@
             '<td class="num">' + fmt(r.events) + "</td></tr>";
         });
 
+        renderBars(document.getElementById("replayBuckets"), data.replay_buckets, "bucket", "n_players");
         renderPlayers(data.players, key);
       })
       .catch(function (err) {
@@ -381,7 +387,7 @@
   function renderPlayers(rows, key) {
     var tbody = document.querySelector("#playersTable tbody");
     if (!rows || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No players yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No players yet.</td></tr>';
       return;
     }
     tbody.innerHTML = "";
@@ -392,6 +398,7 @@
         '<td class="pid">' + escapeHtml(r.player_id) + '</td>' +
         '<td>' + fmtDate(r.first_seen_at) + '</td>' +
         '<td>' + fmtDate(r.last_seen_at) + '</td>' +
+        '<td class="num">' + fmt(r.run_count) + '</td>' +
         '<td class="num">' + fmt(r.session_count) + '</td>' +
         '<td class="num">' + fmt(r.event_count) + '</td>';
       tr.addEventListener("click", function () { openPlayer(r.player_id, key, tr); });

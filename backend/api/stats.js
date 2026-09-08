@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
 
   const pool = getPool();
   try {
-    const [totals, byEvent, dropoff, weapons, deaths, runEnds, daily, players] = await Promise.all([
+    const [totals, byEvent, dropoff, weapons, deaths, runEnds, daily, players, replayBuckets] = await Promise.all([
       pool.query(`
         SELECT
           (SELECT COUNT(*) FROM players) AS player_count,
@@ -79,15 +79,43 @@ module.exports = async function handler(req, res) {
       // One row per player, for the player-wise breakdown. player_id is the
       // only identifier this system has -- there is no name or session count
       // beyond what's derivable from events, by design (see db/schema.sql).
+      // run_count is how many times they actually started a run -- the
+      // direct answer to "does anyone come back and play again", since a
+      // session is one browser tab/launch but run_start fires on every
+      // replay within it too.
       pool.query(`
         SELECT p.player_id, p.first_seen_at, p.last_seen_at,
                COUNT(e.id) AS event_count,
-               COUNT(DISTINCT e.session_id) AS session_count
+               COUNT(DISTINCT e.session_id) AS session_count,
+               COUNT(*) FILTER (WHERE e.event_name = 'run_start') AS run_count
         FROM players p
         LEFT JOIN events e ON e.player_id = p.player_id
         GROUP BY p.player_id, p.first_seen_at, p.last_seen_at
         ORDER BY p.last_seen_at DESC
         LIMIT 500
+      `),
+      // How replay counts are distributed across all players: how many
+      // played exactly once, exactly twice, 3-5 times, 6+ times. The single
+      // clearest "is this game worth coming back to" number.
+      pool.query(`
+        WITH runs_per_player AS (
+          SELECT player_id, COUNT(*) AS n
+          FROM events WHERE event_name = 'run_start'
+          GROUP BY player_id
+        )
+        SELECT
+          CASE
+            WHEN n = 1 THEN '1 run'
+            WHEN n = 2 THEN '2 runs'
+            WHEN n BETWEEN 3 AND 5 THEN '3-5 runs'
+            WHEN n BETWEEN 6 AND 10 THEN '6-10 runs'
+            ELSE '11+ runs'
+          END AS bucket,
+          MIN(n) AS sort_key,
+          COUNT(*) AS n_players
+        FROM runs_per_player
+        GROUP BY 1
+        ORDER BY sort_key ASC
       `),
     ]);
 
@@ -100,6 +128,7 @@ module.exports = async function handler(req, res) {
       run_ends: runEnds.rows,
       daily_last_14d: daily.rows,
       players: players.rows,
+      replay_buckets: replayBuckets.rows,
     });
   } catch (err) {
     console.error("stats query failed:", err.message);
