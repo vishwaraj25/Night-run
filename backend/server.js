@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const handler = require("./api/events");
 const statsHandler = require("./api/stats");
+const playerEventsHandler = require("./api/player-events");
 
 const PORT = process.env.PORT || 8080;
 
@@ -40,6 +41,15 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/stats") {
     try {
       return await statsHandler(req, res);
+    } catch (err) {
+      console.error("unhandled:", err.message);
+      if (!res.headersSent) res.status(500).json({ error: "internal_error" });
+      return;
+    }
+  }
+  if (url.pathname === "/api/player-events") {
+    try {
+      return await playerEventsHandler(req, res);
     } catch (err) {
       console.error("unhandled:", err.message);
       if (!res.headersSent) res.status(500).json({ error: "internal_error" });

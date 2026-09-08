@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
 
   const pool = getPool();
   try {
-    const [totals, byEvent, dropoff, weapons, deaths, runEnds, daily] = await Promise.all([
+    const [totals, byEvent, dropoff, weapons, deaths, runEnds, daily, players] = await Promise.all([
       pool.query(`
         SELECT
           (SELECT COUNT(*) FROM players) AS player_count,
@@ -76,6 +76,19 @@ module.exports = async function handler(req, res) {
         WHERE server_ts > now() - INTERVAL '14 days'
         GROUP BY 1 ORDER BY 1 ASC
       `),
+      // One row per player, for the player-wise breakdown. player_id is the
+      // only identifier this system has -- there is no name or session count
+      // beyond what's derivable from events, by design (see db/schema.sql).
+      pool.query(`
+        SELECT p.player_id, p.first_seen_at, p.last_seen_at,
+               COUNT(e.id) AS event_count,
+               COUNT(DISTINCT e.session_id) AS session_count
+        FROM players p
+        LEFT JOIN events e ON e.player_id = p.player_id
+        GROUP BY p.player_id, p.first_seen_at, p.last_seen_at
+        ORDER BY p.last_seen_at DESC
+        LIMIT 500
+      `),
     ]);
 
     return res.status(200).json({
@@ -86,6 +99,7 @@ module.exports = async function handler(req, res) {
       death_reasons: deaths.rows,
       run_ends: runEnds.rows,
       daily_last_14d: daily.rows,
+      players: players.rows,
     });
   } catch (err) {
     console.error("stats query failed:", err.message);

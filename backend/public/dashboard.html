@@ -84,6 +84,38 @@
   .empty { color: var(--muted); font-size: 12.5px; padding: 8px 0; }
   .refresh { color: var(--muted); font-size: 12px; cursor: pointer; border: 1px solid var(--panel-border); background: var(--panel); padding: 6px 12px; border-radius: 6px; }
   .refresh:hover { color: var(--text); border-color: var(--accent-dim); }
+
+  tr.player-row { cursor: pointer; }
+  tr.player-row:hover td { background: var(--grid); }
+  tr.player-row.active td { background: var(--accent-dim); color: #eafffb; }
+  .pid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--text); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(3, 4, 7, 0.72);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; z-index: 10; overflow-y: auto;
+  }
+  .modal {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 12px; width: 100%; max-width: 720px; padding: 20px 22px;
+  }
+  .modal-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 4px;
+  }
+  .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .modal-head .close { cursor: pointer; color: var(--muted); border: none; background: none; font-size: 20px; line-height: 1; padding: 4px; }
+  .modal-head .close:hover { color: var(--text); }
+  .modal .meta { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  .timeline { display: flex; flex-direction: column; gap: 0; max-height: 60vh; overflow-y: auto; }
+  .tl-row {
+    display: grid; grid-template-columns: 110px 130px 1fr; gap: 12px;
+    padding: 7px 0; border-bottom: 1px solid var(--grid); font-size: 12.5px;
+    align-items: baseline;
+  }
+  .tl-row .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tl-row .name { color: var(--accent); font-weight: 600; }
+  .tl-row .payload { color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -143,6 +175,27 @@
       </table>
     </div>
   </section>
+
+  <section>
+    <h2>Players — click a row for their full event timeline</h2>
+    <div class="panel">
+      <table id="playersTable">
+        <thead><tr><th>Player ID</th><th>First seen</th><th>Last seen</th><th class="num">Sessions</th><th class="num">Events</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Player timeline</h3>
+      <button class="close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="meta" id="modalMeta"></div>
+    <div class="timeline" id="modalTimeline"></div>
+  </div>
 </div>
 
 <script>
@@ -247,6 +300,8 @@
             '<td class="num">' + fmt(r.players) + "</td>" +
             '<td class="num">' + fmt(r.events) + "</td></tr>";
         });
+
+        renderPlayers(data.players, key);
       })
       .catch(function (err) {
         app.hidden = true;
@@ -256,6 +311,92 @@
           ? "Wrong key."
           : "Could not load data. Check the backend is deployed and DASHBOARD_KEY is set.";
       });
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+
+  var modalBackdrop = document.getElementById("modalBackdrop");
+  var modalTitle = document.getElementById("modalTitle");
+  var modalMeta = document.getElementById("modalMeta");
+  var modalTimeline = document.getElementById("modalTimeline");
+
+  function closeModal() {
+    modalBackdrop.hidden = true;
+    document.querySelectorAll("tr.player-row.active").forEach(function (r) { r.classList.remove("active"); });
+  }
+  document.getElementById("modalClose").addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", function (e) {
+    if (e.target === modalBackdrop) closeModal();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !modalBackdrop.hidden) closeModal();
+  });
+
+  function openPlayer(playerId, key, rowEl) {
+    document.querySelectorAll("tr.player-row.active").forEach(function (r) { r.classList.remove("active"); });
+    if (rowEl) rowEl.classList.add("active");
+
+    modalTitle.textContent = "Loading...";
+    modalMeta.textContent = "";
+    modalTimeline.innerHTML = '<div class="empty">Loading events...</div>';
+    modalBackdrop.hidden = false;
+
+    fetch("/api/player-events?key=" + encodeURIComponent(key) + "&player_id=" + encodeURIComponent(playerId), { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("failed to load");
+        return r.json();
+      })
+      .then(function (data) {
+        modalTitle.textContent = playerId;
+        modalMeta.textContent = "First seen " + fmtDate(data.player.first_seen_at) +
+          "  ·  Last seen " + fmtDate(data.player.last_seen_at) +
+          "  ·  " + data.events.length + " events";
+
+        if (data.events.length === 0) {
+          modalTimeline.innerHTML = '<div class="empty">No events recorded.</div>';
+          return;
+        }
+        modalTimeline.innerHTML = data.events.map(function (e) {
+          var payloadStr = e.payload && Object.keys(e.payload).length
+            ? JSON.stringify(e.payload)
+            : "";
+          return '<div class="tl-row">' +
+            '<div class="t">' + fmtDate(e.client_ts) + '</div>' +
+            '<div class="name">' + escapeHtml(e.event_name) + '</div>' +
+            '<div class="payload">' + escapeHtml(payloadStr) + '</div>' +
+            '</div>';
+        }).join("");
+      })
+      .catch(function () {
+        modalTitle.textContent = playerId;
+        modalTimeline.innerHTML = '<div class="empty">Could not load this player\'s events.</div>';
+      });
+  }
+
+  function renderPlayers(rows, key) {
+    var tbody = document.querySelector("#playersTable tbody");
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No players yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = "";
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.className = "player-row";
+      tr.innerHTML =
+        '<td class="pid">' + escapeHtml(r.player_id) + '</td>' +
+        '<td>' + fmtDate(r.first_seen_at) + '</td>' +
+        '<td>' + fmtDate(r.last_seen_at) + '</td>' +
+        '<td class="num">' + fmt(r.session_count) + '</td>' +
+        '<td class="num">' + fmt(r.event_count) + '</td>';
+      tr.addEventListener("click", function () { openPlayer(r.player_id, key, tr); });
+      tbody.appendChild(tr);
+    });
   }
 
   document.getElementById("unlockBtn").addEventListener("click", function () {
